@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vidmerge — склейка видео с камеры Xiaomi</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+  :root {
+    --serif: "Hoefler Text", "Iowan Old Style", "Georgia", "Cambria", serif;
+  }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #f5f1e6;
+    color: #2a2a2a;
+    line-height: 1.65;
+  }
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 5rem;
+  }
+
+  /* hero */
+  .hero {
+    margin: 1rem 0 3rem;
+    text-align: left;
+  }
+  .hero pre {
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Liberation Mono", monospace;
+    font-size: 0.78rem;
+    line-height: 1.2;
+    color: #555;
+    margin: 0 0 2rem;
+    white-space: pre;
+    overflow-x: auto;
+    display: inline-block;
+  }
+  .hero h1 {
+    margin: 1.25rem 0 1.5rem;
+    line-height: 1;
+  }
+  .hero h1 .primary,
+  .hero h1 .secondary {
+    display: block;
+    font-weight: 900;
+    letter-spacing: -0.035em;
+    line-height: 1.02;
+    text-wrap: balance;
+  }
+  .hero h1 .primary,
+  .hero h1 .secondary {
+    font-size: clamp(2rem, 5.2vw, 3rem);
+  }
+  .hero h1 .primary   { color: #0a0a0a; }
+  .hero h1 .secondary { color: #c0c0c0; margin-top: 0.2rem; }
+  .hero .byline {
+    margin: 1.25rem 0 0;
+    max-width: 560px;
+    color: #8a8a8a;
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .hero .byline a { color: inherit; border-bottom-color: rgba(168,168,168,0.4); }
+  .hero .byline a:hover { color: #2d7d2d; border-bottom-color: #2d7d2d; }
+
+  /* headings */
+  h2 {
+    font-size: 1.55rem;
+    margin: 4rem 0 1rem;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: #2a2a2a;
+    line-height: 1.2;
+  }
+  h2::before {
+    content: "░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░";
+    display: block;
+    color: #c8c2a8;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    line-height: 1;
+    margin-bottom: 1.1rem;
+  }
+  h2.stage {
+    font-size: 1.55rem;
+    margin: 0 0 1.1rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #1a1a1a;
+    line-height: 1.2;
+  }
+  h2.stage::before { display: none; }
+
+  /* stage section — белая «плита», лежащая на бежевом фоне.
+     Растягиваем за padding контейнера ровно настолько, чтобы по ширине
+     совпасть с краем .container. Внутри сохраняем тот же горизонтальный
+     отступ, чтобы текст не сдвигался относительно обычных секций. */
+  .stage-section {
+    background: #f7f7f5;
+    padding: 2.25rem 1.5rem 1.75rem;
+    margin: 3.5rem -1.5rem;
+  }
+  .stage-section + .stage-section { margin-top: 0.4rem; }
+  .stage-section::before {
+    content: "░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░ ░";
+    display: block;
+    color: #c8c2a8;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0;
+    line-height: 1;
+    margin-bottom: 1.5rem;
+  }
+  h3 {
+    font-size: 1.2rem;
+    margin: 2rem 0 0.5rem;
+    font-weight: 700;
+    color: #1f1f1f;
+    letter-spacing: -0.01em;
+  }
+  h4 {
+    font-size: 1rem;
+    margin: 1.5rem 0 0.35rem;
+    font-weight: 600;
+    color: #2a2a2a;
+  }
+  h4 .muted {
+    font-weight: normal;
+    color: #6a6a6a;
+    font-size: 0.88em;
+    margin-left: 0.25em;
+  }
+  h4 + .code-block { margin-top: 0; }
+  p { margin: 0 0 0.9rem; }
+  ul, ol { padding-left: 1.5rem; margin: 0 0 1rem; }
+  li { margin: 0.2rem 0; }
+  strong { font-weight: 600; }
+  em { font-style: italic; color: #555; }
+  a { color: #2d7d2d; text-decoration: none; border-bottom: 1px dotted #2d7d2d; }
+  a:hover { border-bottom-style: solid; }
+
+  /* inline code (mentioned in prose) */
+  p code, li code, td code, th code {
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.92em;
+    background: rgba(0,0,0,0.06);
+    padding: 0.08em 0.4em;
+    border-radius: 3px;
+  }
+
+  /* warning icon — used before code-styled error messages in troubleshooting */
+  .warn-icon {
+    color: #b8860b;
+    font-weight: 700;
+    margin-right: 0.2em;
+  }
+
+  /* code block — Matrix-terminal vibe: dark grey background, phosphor green text */
+  .code-block {
+    position: relative;
+    margin: 0.75rem 0 1.5rem;
+    background: #2a2c30;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .code-block pre {
+    margin: 0;
+    padding: 0.9rem 1.2rem;
+    padding-right: 5rem;
+    overflow-x: auto;
+    color: #5fea7f;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.92rem;
+    line-height: 1.55;
+    text-shadow: 0 0 6px rgba(95, 234, 127, 0.18);
+  }
+  .code-block code { background: transparent; padding: 0; color: inherit; font-size: inherit; }
+  .copy-btn {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    background: rgba(95, 234, 127, 0.08);
+    color: rgba(95, 234, 127, 0.7);
+    border: 1px solid rgba(95, 234, 127, 0.25);
+    border-radius: 4px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-family: -apple-system, sans-serif;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .copy-btn:hover { background: rgba(95, 234, 127, 0.18); color: #8df49d; border-color: rgba(95, 234, 127, 0.5); }
+  .copy-btn.copied { color: #b9f8c3; border-color: #b9f8c3; background: rgba(185, 248, 195, 0.18); }
+
+  /* terminal preview — example of vidmerge output, NOT a copyable command */
+  .preview {
+    margin: 1rem 0 1.5rem;
+    background: #fbf8ef;
+    border: 1px solid rgba(0,0,0,0.12);
+    border-radius: 6px;
+    padding: 0.9rem 1.2rem;
+    overflow-x: auto;
+    color: #2a2a2a;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.82rem;
+    line-height: 1.4;
+    white-space: pre;
+  }
+
+  /* tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.95rem;
+  }
+  th, td {
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+    vertical-align: top;
+  }
+  th { font-weight: 600; background: rgba(0,0,0,0.03); }
+
+  /* callouts */
+  .note, .warn, .tip, .critical {
+    margin: 1.5rem 0;
+    padding: 0.85rem 1.1rem 0.85rem 1.2rem;
+    border-radius: 0 5px 5px 0;
+    border-left-width: 3px;
+    border-left-style: solid;
+  }
+  .note    { background: rgba(45,125,45,0.07);  border-left-color: #2d7d2d; }
+  .tip     { background: rgba(70,130,180,0.07); border-left-color: #4682b4; }
+  .warn    { background: rgba(184,134,11,0.10); border-left-color: #b8860b; }
+  .critical{ background: rgba(216,70,30,0.08);  border-left-color: #d8461e; border-left-width: 5px; padding: 1.1rem 1.25rem 0.9rem 1.4rem; }
+  .note p:last-child, .warn p:last-child, .tip p:last-child, .critical p:last-child { margin-bottom: 0; }
+  .note .label, .warn .label, .tip .label, .critical .label {
+    display: inline-block;
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-right: 0.4rem;
+  }
+  .note .label     { color: #2d7d2d; }
+  .tip  .label     { color: #4682b4; }
+  .warn .label     { color: #b8860b; }
+  .critical .label { color: #d8461e; font-size: 0.85rem; }
+  .critical ol { margin: 0.5rem 0 0.5rem 0; padding-left: 1.5rem; }
+  .critical ol li { margin: 0.5rem 0; }
+
+  /* table of contents */
+  nav.toc {
+    background: rgba(0,0,0,0.025);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    margin: 0 0 2rem;
+    font-size: 0.95rem;
+  }
+  nav.toc strong { display: block; margin-bottom: 0.4rem; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: #6a6a6a; }
+  nav.toc ol { margin: 0; padding-left: 1.25rem; }
+  nav.toc a { border: none; color: #2a2a2a; }
+  nav.toc a:hover { color: #2d7d2d; }
+
+  /* footer */
+  footer {
+    margin: 5rem 0 0;
+    padding-top: 1.75rem;
+    color: #7a7a7a;
+    font-family: var(--serif);
+    font-size: 1rem;
+    font-style: italic;
+    line-height: 1.6;
+  }
+  footer::before {
+    content: "░▒▓████████████████████████████████████████████████████████▓▒░";
+    display: block;
+    color: #b8af96;
+    font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0;
+    line-height: 1;
+    margin-bottom: 1.75rem;
+    font-style: normal;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header class="hero">
+<pre>░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+░                                                              ░
+░    ▗▄▄▄▄▖                                                    ░
+░    █░◉ ▒█     vidmerge · version "good enough 01"            ░
+░    █░ ▒▒█     Xiaomi camera clip merger · by <a href="https://t.me/slonski">@slonski</a>        ░
+░    ▝▀▀▀▀▘                                                    ░
+░                                                              ░
+░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░</pre>
+<h1>
+<span class="primary">Склейка минутных видео с камер Xiaomi в один файл на Mac</span>
+<span class="secondary">Инструкция по применению скрипта vidmerge.sh</span>
+</h1>
+<p class="byline">С приветом собаке Агате, без которой склеивать было бы нечего.</p>
+</header>
+
+<p>Домашние камеры Xiaomi (C300 и аналогичные) пишут видео на SD-карту короткими файлами по одной минуте каждый. Если нужно получить одно цельное видео — например, час или два — эти кусочки надо склеить. Скрипт <code>vidmerge.sh</code> делает это автоматически: <strong>без потери качества и очень быстро</strong> (несколько секунд на час видео).</p>
+
+<div class="tip">
+<span class="label">Какие камеры подходят</span>
+Все домашние smart-камеры Xiaomi / Mi / Mijia, которые работают с приложением <strong>Mi Home</strong> и пишут видео на SD-карту минутными файлами. Среди типичных моделей: Xiaomi C300, C400, C500 Pro, Mi Home Security Camera 360°, Mi Outdoor CW400. Главный признак совместимости — если открыть SD-карту, на ней есть папка <code>MIJIA_RECORD_VIDEO</code> с подпапками вида <code>2026053014</code> (год+месяц+день+час): если такая папка есть, скрипт сработает.
+</div>
+
+<nav class="toc">
+<strong>Что внутри</strong>
+<ol>
+  <li><a href="#req">Что понадобится</a></li>
+  <li><a href="#folder">Папка для видео</a></li>
+  <li><a href="#stage1">Этап 1. Установка программ</a></li>
+  <li><a href="#stage2">Этап 2. Перенос видео на Mac</a></li>
+  <li><a href="#stage3">Этап 3. Склейка</a></li>
+  <li><a href="#repeat">Как сделать следующую склейку</a></li>
+  <li><a href="#tz">Если время на камере отличается от вашего</a></li>
+  <li><a href="#advanced">Продвинутый режим</a></li>
+  <li><a href="#troubleshoot">Если что-то пошло не так</a></li>
+  <li><a href="#multicam">Несколько камер одновременно</a></li>
+</ol>
+</nav>
+
+<h2 id="req">Что понадобится</h2>
+<ul>
+  <li>Mac</li>
+  <li>Камера Xiaomi с установленной SD-картой и приложение <strong>Mi Home</strong> на телефоне</li>
+  <li>Минут 15 на первичную настройку — её делать <strong>один раз навсегда</strong></li>
+  <li>Несколько минут каждый последующий раз, когда нужно склеить новые видео</li>
+  <li>Способ подключить SD-карту к Маку (картридер или переходник — если хотите читать с карты напрямую)</li>
+</ul>
+
+<div class="note">
+<p><strong>Что такое скрипт.</strong> Это текстовый файл с инструкциями, которые компьютер выполняет одну за другой, — такие файлы запускают из Терминала. В отличие от обычных приложений (тех, что в папке Applications с иконкой), скрипт не требует установки: хранится там, где его положили, и запускается оттуда же.</p>
+<p><strong>Безопасно ли запускать.</strong> <code>vidmerge.sh</code> делает ровно одну вещь — берёт <code>.mp4</code>-файлы в указанной папке и склеивает их через <code>ffmpeg</code>. Не лезет в интернет, не трогает другие папки, не отправляет никаких данных. Сам файл — обычный текст: можно открыть его в любом текстовом редакторе (например, в TextEdit, который есть в любом Mac), и весь код будет перед вами.</p>
+</div>
+
+<h2 id="folder">Папка для видео</h2>
+<p>Скрипт <strong>не привязан к конкретной папке</strong>. Вы сами выбираете, куда положить минутные файлы — это может быть:</p>
+<ul>
+  <li>Новая папка на Рабочем столе («Видео с камеры», «Запись 30 мая» — любое название)</li>
+  <li>Папка внутри Документов</li>
+  <li>Любое другое место, где вам удобно</li>
+</ul>
+<p><strong>Главное правило</strong>: минутные файлы и сам скрипт <code>vidmerge.sh</code> должны лежать <strong>в одной папке</strong>. И в этой папке не должно быть никаких других видео-файлов от другой камеры — только текущая серия. После склейки итоговое видео тоже появится в этой же папке.</p>
+
+<div class="tip">
+<span class="label">Совет</span>
+Называйте папку по смыслу события, которое записано — например, <code>Лидл</code>, <code>Уход_на_прогулку</code>, <code>2026-05-30_визит_сантехника</code>. Скрипт <strong>автоматически</strong> возьмёт имя папки как метку для итогового файла: оно попадёт и в имя файла (<code>merged_..._Лидл.mp4</code>), и в метаданные видео (видны в QuickTime/VLC и в поиске Spotlight). Так через год по списку файлов будет понятно, что именно записано в каждом видео.
+</div>
+
+<section class="stage-section">
+<h2 id="stage1" class="stage">Этап 1. Установка программ</h2>
+<p>Эти шаги нужно сделать только один раз — после этого можно сразу переходить к склейке.</p>
+
+<h3>1.1. Откройте Терминал</h3>
+<p>Терминал — это окошко, через которое можно давать компьютеру команды текстом. Найти его так:</p>
+<ol>
+  <li>Откройте поиск <strong>Spotlight</strong>:
+    <ul>
+      <li>стандартный способ — нажмите <strong>Cmd + Пробел</strong>. Это шорткат по умолчанию;</li>
+      <li>если шорткат не сработал — кликните по <strong>иконке лупы</strong> в правом верхнем углу экрана, в строке меню рядом с часами;</li>
+      <li>запасной способ, если иконки лупы тоже нет: Finder → <strong>Программы (Applications) → Утилиты (Utilities) → Терминал (Terminal)</strong>, и пропустите шаги 2–3.</li>
+    </ul>
+  </li>
+  <li>В появившейся строке Spotlight наберите <strong>Terminal</strong> и нажмите Enter.</li>
+  <li>Откроется окно с курсором — это и есть Терминал.</li>
+</ol>
+
+<p><strong>Как работать с Терминалом дальше</strong>: когда в инструкции написано «выполните команду» — нажмите кнопку <strong>Copy</strong> у нужной команды на этой странице, переключитесь в Терминал, вставьте (<strong>Cmd+V</strong>), нажмите <strong>Enter</strong>, дождитесь окончания (когда курсор снова замигает на пустой строке).</p>
+
+<div class="tip">
+<span class="label">Подсказка</span>
+В правом верхнем углу каждого блока с командой на этой странице есть кнопка <strong>Copy</strong>. Это самый надёжный способ перенести команду в Терминал — в буфер попадёт ровно текст команды, без лишних символов разметки или невидимых пробелов.
+</div>
+
+<h3>1.2. Установите Homebrew</h3>
+<p>Homebrew — это магазин программ для Mac, через который удобно ставить нужные инструменты. Выполните команду:</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</code></pre>
+</div>
+<p>Терминал может спросить пароль — это пароль от Mac (тот же, что для входа в систему). При вводе на экране <strong>ничего не будет видно</strong> (даже звёздочек) — это нормально, просто наберите вслепую и нажмите Enter. Дождитесь окончания установки.</p>
+
+<h3>1.3. Подключите Homebrew к Терминалу</h3>
+<p>Чтобы Терминал заметил только что установленный Homebrew, выполните по очереди две команды:</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' &gt;&gt; ~/.zprofile</code></pre>
+</div>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>eval "$(/opt/homebrew/bin/brew shellenv)"</code></pre>
+</div>
+
+<h3>1.4. Установите ffmpeg</h3>
+<p>ffmpeg — это программа, которая умеет работать с видео. Скрипт использует её, чтобы склеивать файлы.</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>brew install ffmpeg</code></pre>
+</div>
+<p>Дождитесь окончания установки.</p>
+<p><strong>Готово.</strong> Этот этап больше делать не нужно — программы останутся на компьютере до тех пор, пока вы их не удалите или не переустановите систему с нуля.</p>
+
+</section>
+
+<section class="stage-section">
+<h2 id="stage2" class="stage">Этап 2. Перенос видео на Mac</h2>
+<p>Есть два способа получить минутные файлы на Mac — выбирайте удобный; скрипт понимает оба формата имён файлов, и их можно перемешивать.</p>
+
+<h3>Вариант А. Через приложение Mi Home</h3>
+<ol>
+  <li>Откройте приложение <strong>Mi Home</strong> на телефоне.</li>
+  <li>Выберите камеру → <strong>Playback</strong> (или <strong>Storage Management</strong>) → <strong>SD Card</strong> → <strong>All Videos</strong>.</li>
+  <li>Отметьте минутные файлы, которые хотите склеить, и нажмите кнопку загрузки. Файлы попадут в галерею телефона.</li>
+  <li><strong>Перенесите файлы из галереи телефона на Mac любым удобным способом</strong> и сохраните их в одну папку (например, новую папку на Рабочем столе). Способов много: AirDrop, облако (iCloud / Google Drive / Dropbox), мессенджер с самим собой («Saved Messages» в Telegram, WhatsApp), подключение телефона кабелем. Главное — чтобы в итоге все минутные <code>.mp4</code> оказались в одной папке на Mac.</li>
+</ol>
+<p><strong>Если у вас iPhone с iCloud Photos</strong>, есть короткий путь:</p>
+<ol>
+  <li>На Mac откройте приложение <strong>Photos</strong> (Фото). Загруженные из Mi Home видео появятся там автоматически (если включена синхронизация iCloud Photos).</li>
+  <li>Найдите видео, выделите их все.</li>
+  <li>В верхнем меню: <strong>File → Export → Export Unmodified Original for X videos</strong>.</li>
+  <li>Сохраните в одну папку на Mac.</li>
+</ol>
+<p>Файлы будут называться так: <code>1766763309000.mp4</code> (это Unix-таймстемп в миллисекундах).</p>
+
+<h3>Вариант Б. Напрямую с SD-карты камеры</h3>
+<p>Быстрее, если файлов много или нужен большой временной диапазон.</p>
+<ol>
+  <li>Достаньте SD-карту из камеры и подключите её к Mac (через картридер или переходник).</li>
+  <li>В Finder откройте карту — внутри есть папка <code>MIJIA_RECORD_VIDEO</code> (постоянная запись с камеры). Рядом может быть <code>MIJIA_RECORD_MOTION</code> — это записи по детектору движения.</li>
+  <li>Внутри <code>MIJIA_RECORD_VIDEO</code> лежат папки с именами вида <code>YYYYMMDDHH</code> — каждая содержит минутные файлы за один час записи. <strong>Последние две цифры в имени папки — это час дня</strong> (от 00 до 23):
+    <table>
+      <thead><tr><th>Имя папки</th><th>Что в ней</th></tr></thead>
+      <tbody>
+        <tr><td><code>2026053014</code></td><td>30 мая 2026, с 14:00 до 14:59</td></tr>
+        <tr><td><code>2026053000</code></td><td>30 мая 2026, с 00:00 до 00:59 (полночь)</td></tr>
+        <tr><td><code>2026052923</code></td><td>29 мая 2026, с 23:00 до 23:59</td></tr>
+      </tbody>
+    </table>
+  </li>
+  <li>Зайдите в нужную часовую папку, выделите минутные файлы (или сразу все — отфильтруете потом). Файлы внутри названы так: <code>29M53S_1780082993.mp4</code> — где <code>29M53S</code> это 29-я минута 53-я секунда часа, а <code>1780082993</code> — Unix-таймстемп в секундах. Рядом с каждым <code>.mp4</code> лежит <code>.jpeg</code> — это превью-картинка, её скрипт игнорирует.</li>
+  <li>Скопируйте выбранные файлы <strong>в одну плоскую папку на Mac</strong> (например, новую папку на Рабочем столе). Если нужно несколько часов — заходите по очереди в каждую часовую папку и копируйте оттуда нужные минуты в ту же целевую папку.</li>
+</ol>
+<p>Можно копировать «с запасом» — например, целый час, если нужно полчаса. На Этапе 3 скрипт либо склеит всё, что вы скопировали, либо отфильтрует диапазон по вашему указанию.</p>
+
+<div class="warn">
+<span class="label">Важно</span>
+<strong>Не переименовывайте файлы</strong> — скрипт ориентируется по именам и таймстемпам в них. Если переименуете — он не поймёт, в каком порядке клеить.
+</div>
+
+</section>
+
+<section class="stage-section">
+<h2 id="stage3" class="stage">Этап 3. Склейка</h2>
+
+<div class="critical">
+<span class="label">⚠ Самое важное — не пропустите</span>
+<p><strong>Два шага, на которых чаще всего спотыкаются.</strong> Их нужно делать <strong>каждый раз</strong>, когда вы заводите новую папку для очередной порции видео:</p>
+<ol>
+  <li>Положить файл <code>vidmerge.sh</code> <strong>в ту же папку</strong>, где лежат минутные клипы. Файл нужно скопировать туда заново — он не следует за вами автоматически. Без него Терминал в этой папке скажет <code>command not found</code>.</li>
+  <li>Разрешить запуск командой <code>chmod +x vidmerge.sh</code>. Это делается <strong>один раз для каждого нового файла</strong> <code>vidmerge.sh</code>, который вы скопировали в новую папку. Без этого шага Терминал скажет <code>Permission denied</code>.</li>
+</ol>
+<p>Это самые частые ошибки, поэтому если что-то не работает с первой попытки — проверьте именно эти два пункта.</p>
+</div>
+
+<p>Весь процесс в одной картинке:</p>
+<div class="preview">шаг 1.  моя_папка/                          ← ваша папка с видео
+        ├─ 14_30_00.mp4
+        ├─ 14_31_00.mp4
+        ├─ 14_32_00.mp4
+        └─ ... (минутные файлы)
+              │
+              ▼   скопируйте сюда файл vidmerge.sh
+              │
+шаг 2.  моя_папка/
+        ├─ 14_30_00.mp4
+        ├─ ...
+        └─ vidmerge.sh                      ← скопировали
+              │
+              ▼   откройте Терминал в этой папке
+              │   (правый клик по папке → «Новый терминал в папке»)
+              │
+        ════ шаги 3 и 4 — наберите (или вставьте) в открывшемся Терминале ════
+              │
+шаг 3.  chmod +x vidmerge.sh                ← разрешили запуск (один раз)
+              │
+              ▼
+              │
+шаг 4.  ./vidmerge.sh                       ← запустили склейку
+              │
+              ▼
+              ▓▓ ✓ Done — that worked</div>
+
+<h3>3.1. Положите скрипт рядом с видео</h3>
+<p>Скопируйте файл <code>vidmerge.sh</code> в ту же папку, где лежат ваши минутные видео — перетащите его в Finder, либо скопируйте через <code>Cmd+C</code> / <code>Cmd+V</code>. Это нужно делать каждый раз для каждой новой папки: если вы перенесёте видео в другое место, скрипт туда тоже надо скопировать.</p>
+
+<h3>3.2. Откройте Терминал в этой папке</h3>
+<p><strong>Простой способ</strong> (рекомендуем):</p>
+<ol>
+  <li>В Finder кликните по папке с видео правой кнопкой мыши.</li>
+  <li>Выберите <strong>«Новый терминал в папке»</strong> (или <strong>New Terminal at Folder</strong>).</li>
+  <li>Откроется Терминал, уже находящийся в нужной папке.</li>
+</ol>
+<p>Если такого пункта в меню нет — его нужно включить один раз. Путь зависит от того, на каком языке у вас интерфейс macOS:</p>
+<ul>
+  <li><strong>Русский интерфейс:</strong> Системные настройки → Клавиатура → Сочетания клавиш → Службы → Файлы и папки → поставить галочку у пункта <strong>«Новый Терминал в папке»</strong>.</li>
+  <li><strong>English interface:</strong> System Settings → Keyboard → Keyboard Shortcuts → Services → Files and Folders → check <strong>“New Terminal at Folder”</strong>.</li>
+</ul>
+<p>На старых версиях macOS (до Ventura) этот раздел называется <strong>System Preferences</strong> / <strong>Системные настройки</strong> и устроен немного иначе, но искомый пункт там есть — ищите по слову «Terminal» в Services / Службы.</p>
+
+<p><strong>Запасной способ</strong> через команду <code>cd</code>:</p>
+<ol>
+  <li>Откройте Терминал любым способом.</li>
+  <li>Наберите <code>cd </code> (с пробелом в конце).</li>
+  <li>Перетащите папку с видео из Finder в окно Терминала — путь подставится автоматически.</li>
+  <li>Нажмите Enter.</li>
+</ol>
+<p>Проверить, что вы попали в нужную папку, можно командой:</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>ls *.mp4</code></pre>
+</div>
+<p>Должны увидеть список своих минутных файлов и скрипт.</p>
+
+<h3>3.3. Разрешите запускать скрипт</h3>
+<p>В Терминале выполните:</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>chmod +x vidmerge.sh</code></pre>
+</div>
+<p>Эта команда говорит системе: «этот файл — программа, его можно запускать». Достаточно сделать <strong>один раз</strong> для файла <code>vidmerge.sh</code> в этой папке.</p>
+<div class="warn">
+<span class="label">Запомните</span>
+Если в следующий раз вы скопируете файл <code>vidmerge.sh</code> в другую папку (с другими видео) — там тоже нужно один раз выполнить <code>chmod +x vidmerge.sh</code>. Mac хранит разрешение запуска отдельно для каждого файла, оно не переносится при копировании. Без этого шага при попытке запустить вы увидите <code>Permission denied</code>.
+</div>
+
+<h3>3.4. Запустите скрипт</h3>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh</code></pre>
+</div>
+<p><code>./</code> в начале означает «программа из этой же папки» — без этого Терминал не поймёт, что нужно искать программу здесь.</p>
+<p><strong>По умолчанию скрипт склеивает все распознанные минутные файлы из папки.</strong> Это и есть основной сценарий, если вы уже отобрали нужные файлы руками при копировании.</p>
+<p>Сначала появится небольшая обложка с ASCII-иконкой камеры — это просто оформление, а затем — превью того, что собирается сделать:</p>
+<div class="preview">░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+░                                                              ░
+░    ▗▄▄▄▄▖                                                    ░
+░    █░◉ ▒█     vidmerge · version "good enough 01"            ░
+░    █░ ▒▒█     Xiaomi camera clip merger · by @slonski        ░
+░    ▝▀▀▀▀▘                                                    ░
+░                                                              ░
+░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+
+▓▓ Ready to merge — let's see
+   Files:        30
+   Start:        2026-05-30 14:00:00
+   End:          2026-05-30 14:29:00
+   Duration:     ≈ 30m 00s
+   Size:         ≈ 540 MB
+   Comment:      Lidl  (in file name &amp; video metadata)
+   Specs:        hevc,2304,1296,20/1
+   Output:       merged_2026-05-30_14-00_to_14-29_Lidl.mp4
+
+[Enter]  start merge
+[q]      cancel
+[text]   set as new comment (up to 50 chars, saved in file name + metadata)
+&gt;</div>
+<p>В ответ:</p>
+<ul>
+  <li><strong>Просто <code>Enter</code></strong> — склеить с показанными настройками.</li>
+  <li><strong>Введите любой текст</strong> — он станет новым комментарием. Превью обновится с новым именем выходного файла, и вопрос задастся снова. Удобно, если дефолтный комментарий (имя папки) не подходит.</li>
+  <li><strong><code>q</code> + Enter</strong> — отмена, никаких файлов не создаётся.</li>
+</ul>
+
+<h3 id="time-filter">3.5. Опционально: фильтр по времени</h3>
+<p>Если в папке оказались <strong>лишние файлы</strong>, и нужно склеить только часть из них по времени — добавьте флаги <code>--from</code> и <code>--to</code> (или <code>--from</code> + <code>--duration</code>):</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "сегодня 14:00" --to "сегодня 15:30"</code></pre>
+</div>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "14:00" --duration 1h30m</code></pre>
+</div>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "вчера 22:00" --to "сегодня 02:00"</code></pre>
+</div>
+<p>Форматы времени:</p>
+<table>
+  <thead><tr><th>Что ввести</th><th>Что это значит</th></tr></thead>
+  <tbody>
+    <tr><td><code>сегодня 14:00</code></td><td>Сегодня в 14:00</td></tr>
+    <tr><td><code>вчера 22:00</code></td><td>Вчера в 22:00</td></tr>
+    <tr><td><code>14:00</code></td><td>Просто время = сегодня в 14:00</td></tr>
+    <tr><td><code>2026-05-30 14:00</code></td><td>Конкретная дата и время</td></tr>
+  </tbody>
+</table>
+<p>По-английски тоже работает: <code>today 14:00</code>, <code>yesterday 22:00</code>.</p>
+<p>Длительность: <code>90m</code> (90 минут), <code>2h</code> (2 часа), <code>1h30m</code> (час тридцать), <code>45s</code> (секунд).</p>
+
+<p>В формате даты между числами — обычные дефисы (<code>-</code>), не длинные тире и не подчёркивания.</p>
+
+<h3>3.6. Дождитесь окончания</h3>
+<p>Сама склейка очень быстрая (несколько секунд на час видео — потому что копируется поток без перекодировки). Скрипт покажет короткую строку прогресса и затем итог:</p>
+<div class="preview">▸ Merging files…   ░ ░ ░  →  ▓▓▓
+
+▓▓ ✓ Done — that worked
+   File:         merged_2026-05-30_14-00_to_15-00_Lidl.mp4
+   Duration:     1h 00m 00s
+   Size:         1.2 GB
+
+Reveal in Finder? [Enter=yes, n=no]:</div>
+<p>В последней строке вопрос про Finder:</p>
+<ul>
+  <li><strong><code>Enter</code></strong> — откроет Finder с подсвеченным готовым файлом, и скрипт попрощается: <em>Off you go.</em></li>
+  <li><strong><code>n</code> + Enter</strong> — Finder не открывает, скрипт скажет: <em>Alright then.</em></li>
+</ul>
+<p>Готовое видео лежит в той же папке, где минутные файлы. Если случайно отказались открыть Finder — двойной клик на файле в этой папке открывает его в стандартном плеере. Или вручную из Терминала (подставьте реальное имя файла):</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>open merged_2026-05-30_14-00_to_15-00_Lidl.mp4</code></pre>
+</div>
+
+</section>
+
+<h2 id="repeat">Как сделать следующую склейку</h2>
+<p>Программы (Homebrew, ffmpeg) уже установлены — этот этап повторять не нужно. У вас на компьютере где-то лежит файл <code>vidmerge.sh</code> — это тот же файл, который вы использовали в первый раз. Каждый раз, когда нужно склеить новую порцию видео, повторяйте вот эти шаги:</p>
+<ol>
+  <li>Соберите новые минутные файлы в одну папку. Через приложение Mi Home или напрямую с SD-карты — оба способа описаны в <a href="#stage2">Этапе 2</a>.</li>
+  <li><strong>Положите в эту же папку файл <code>vidmerge.sh</code>.</strong> Это обычный файл — перетащите его мышкой в Finder, как любой документ. Удобно хранить эталонную копию <code>vidmerge.sh</code> где-то у себя (например, на Рабочем столе или в Документах) и каждый раз копировать её в новую папку с видео.</li>
+  <li>Откройте Терминал в этой папке: правый клик по папке в Finder → <strong>Новый терминал в папке</strong>.</li>
+  <li><strong>Если вы только что скопировали <code>vidmerge.sh</code> в эту папку</strong> — один раз выполните в Терминале <code>chmod +x vidmerge.sh</code>. Эта команда разрешает запускать файл как программу. Если эта папка осталась с прошлого раза и файл <code>vidmerge.sh</code> уже лежал в ней — этот шаг уже сделан раньше, повторять не нужно.</li>
+  <li>Запустите склейку командой <code>./vidmerge.sh</code>. Нажмите Enter, когда скрипт спросит подтверждение.</li>
+  <li>Если нужно склеить только часть файлов по времени — добавьте флаги <code>--from</code> и <code>--to</code> (см. раздел <a href="#time-filter">«Опционально: фильтр по времени»</a>).</li>
+</ol>
+<div class="critical">
+<span class="label">Повторим — это главное</span>
+<p>Если что-то не запускается с первой попытки — почти всегда причина одна из двух:</p>
+<ul>
+  <li><strong>Файла <code>vidmerge.sh</code> нет в той же папке, что и видео.</strong> Терминал ответит: <code>command not found</code>. Решение: перетащите файл в нужную папку.</li>
+  <li><strong>Файл есть, но запускать его не разрешено.</strong> Терминал ответит: <code>Permission denied</code>. Решение: один раз выполните <code>chmod +x vidmerge.sh</code>.</li>
+</ul>
+<p>Сначала проверьте эти два пункта — почти наверняка дело в одном из них.</p>
+</div>
+
+<h2 id="tz">Если время на камере отличается от вашего</h2>
+<p>Например, у камеры в настройках стоит часовой пояс Москвы, а вы в Берлине — тогда «сегодня 14:00» на Mac будет означать одно, а в имени файла — другое. Проверить это можно одной командой:</p>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --verify-tz</code></pre>
+</div>
+<p>Скрипт возьмёт один файл и сравнит время в имени файла со временем, когда файл реально оказался на диске. Если совпадает — скажет <code>Timezone OK</code> (можно спокойно пользоваться <code>сегодня</code>/<code>вчера</code>). Если есть расхождение — покажет, на сколько секунд оно сдвинуто, и предупредит, что для команд с <code>--from</code>/<code>--to</code> нужно учитывать это смещение.</p>
+
+<h2 id="advanced">Продвинутый режим</h2>
+<p>У скрипта есть несколько полезных режимов помимо дефолтного. Каждый — это сценарий «что я хочу сделать» и команда, которую для этого нужно выполнить.</p>
+
+<h4>Склеить всё, что лежит в папке <span class="muted">(поведение по умолчанию)</span></h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh</code></pre>
+</div>
+
+<h4>Склеить только заданный диапазон времени</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "сегодня 14:00" --to "сегодня 15:30"</code></pre>
+</div>
+
+<h4>Склеить от указанного момента на заданную длительность</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "сегодня 14:00" --duration 1h30m</code></pre>
+</div>
+
+<h4>Склеить ночную запись через полночь</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "вчера 22:00" --to "сегодня 02:00"</code></pre>
+</div>
+
+<h4>Задать своё имя выходного файла</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --from "14:00" --duration 1h --output entrance_morning.mp4</code></pre>
+</div>
+
+<h4>Задать свой комментарий <span class="muted">(перебить имя папки)</span></h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --comment "Курьер у двери"</code></pre>
+</div>
+
+<h4>Склеить совсем без комментария <span class="muted">(только дата в имени файла)</span></h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --comment ""</code></pre>
+</div>
+
+<h4>Запустить скрипт для папки, которая находится в другом месте</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --dir /Users/имя/Desktop/cam_kitchen</code></pre>
+</div>
+
+<h4>Не задавать вопросов на подтверждение <span class="muted">(для автоматизации)</span></h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh -y</code></pre>
+</div>
+
+<h4>Показать полный технический вывод ffmpeg <span class="muted">(битрейт, прогресс, варнинги)</span></h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --verbose</code></pre>
+</div>
+
+<h4>Посмотреть весь список параметров скрипта</h4>
+<div class="code-block">
+  <button class="copy-btn">Copy</button>
+  <pre><code>./vidmerge.sh --help</code></pre>
+</div>
+
+<h2 id="troubleshoot">Если что-то пошло не так</h2>
+
+<p><strong><code>command not found: brew</code></strong> — Homebrew не установлен или не подключён к Терминалу. Вернитесь к шагам 1.2 и 1.3.</p>
+
+<p><strong><code>command not found: ffmpeg</code></strong> — нет ffmpeg. Выполните <code>brew install ffmpeg</code>.</p>
+
+<p><strong><code>Permission denied</code> при запуске <code>./vidmerge.sh</code></strong> — Mac пока не разрешает запускать этот файл как программу. Один раз выполните в Терминале <code>chmod +x vidmerge.sh</code> — это даст разрешение, и команда сработает.</p>
+
+<p><strong><span class="warn-icon">⚠</span><code>No .mp4 files in …</code></strong> — Терминал смотрит не в ту папку. Проверьте <code>ls *.mp4</code> — должны быть видны ваши минутные файлы. Если не видны — вы не в той папке.</p>
+
+<p><strong><span class="warn-icon">⚠</span><code>Skipped files with unrecognized names</code></strong> — в папку попал <code>.mp4</code>, имя которого не похоже ни на формат Mi Home Export (<code>1766763309000.mp4</code>), ни на формат SD-карты (<code>29M53S_1780082993.mp4</code>). Скрипт его проигнорирует и продолжит работу. Если это файл, который вы переименовали — верните оригинальное имя.</p>
+
+<p><strong><span class="warn-icon">⚠</span><code>No files matched the selected range</code></strong> — под фильтр по времени не попало ничего. Возможно, время в файлах сдвинуто относительно вашего — запустите <code>./vidmerge.sh --verify-tz</code>. Или диапазон задан вне реальных файлов.</p>
+
+<p><strong><span class="warn-icon">⚠</span><code>Video parameters differ between files</code></strong> — клипы записаны с разными настройками камеры (разное разрешение или fps). Быстрая склейка тут не сработает. Чаще всего это значит, что в папку случайно попали файлы от другой камеры или из другой серии — почистите папку и попробуйте снова.</p>
+
+<p><strong><span class="warn-icon">⚠</span><code>Comment too long</code></strong> — введённый комментарий длиннее 50 символов. Скрипт скажет «Bit much.» и попросит ввести покороче — просто наберите более короткую версию и нажмите Enter.</p>
+
+<p><strong>Видео не открывается / битое</strong> — обычно та же причина, что выше («Video parameters differ»). Скрипт перед склейкой должен предупредить, но если файлы прошли проверку и результат всё равно битый — напишите автору или попробуйте перезапустить.</p>
+
+<h2 id="multicam">Несколько камер одновременно</h2>
+<p><strong>Не смешивайте файлы от разных камер в одной папке</strong> — у них могут быть разные параметры (разрешение, fps), и склейка либо не сработает, либо даст артефакты.</p>
+<p>Сделайте отдельную папку под каждую камеру и запустите скрипт для каждой отдельно. Файл <code>vidmerge.sh</code> можно скопировать в каждую папку (не забыв в каждой выполнить <code>chmod +x vidmerge.sh</code>), либо хранить файл в одном месте и запускать его оттуда с параметром <code>--dir</code>, указывая путь к нужной папке с видео.</p>
+
+<footer>
+Эту инструкцию и скрипт сгенерировал <strong>Claude Code</strong>. Если что-то в тексте расходится с реальностью, это не баг, а художественная галлюцинация; пишите автору-человеку <a href="https://t.me/slonski">@slonski</a> в Телеграме, Claude Code умывает руки.
+</footer>
+
+</div>
+
+<script>
+document.querySelectorAll('.code-block').forEach(block => {
+  const btn = block.querySelector('.copy-btn');
+  const code = block.querySelector('code');
+  if (!btn || !code) return;
+  btn.addEventListener('click', () => {
+    const text = code.textContent.trim();
+    const done = () => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallback(text, done));
+    } else {
+      fallback(text, done);
+    }
+  });
+});
+function fallback(text, done) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try { document.execCommand('copy'); done(); } catch (e) {}
+  document.body.removeChild(ta);
+}
+</script>
+
+</body>
+</html>

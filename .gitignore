@@ -1,0 +1,25 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code session artifacts
+.claude/
+
+# Local test playgrounds (in case any get committed accidentally)
+test-*/
+.test/
+xiaomi_test*/
+
+# Merged output files (these are user artifacts, not source)
+merged_*.mp4
+full_video.mp4
