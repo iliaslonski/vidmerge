@@ -29,7 +29,7 @@
     margin: 1rem 0 3rem;
     text-align: left;
   }
-  .hero pre.hero-ascii {
+  .hero pre {
     font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Liberation Mono", monospace;
     font-size: 0.78rem;
     line-height: 1.2;
@@ -39,42 +39,6 @@
     overflow-x: auto;
     display: block;
     max-width: 100%;
-  }
-
-  /* Mobile-only simplified hero — camera icon + side text, no ASCII frame */
-  .hero-simple { display: none; }
-  @media (max-width: 600px) {
-    .hero-ascii { display: none; }
-    .hero-simple {
-      display: flex;
-      gap: 0.85rem;
-      align-items: center;
-      margin: 0 0 2rem;
-      font-family: ui-monospace, "SF Mono", Menlo, Monaco, monospace;
-    }
-    .hero-simple pre {
-      margin: 0;
-      font-family: inherit;
-      font-size: 0.78rem;
-      line-height: 1.15;
-      color: #555;
-      white-space: pre;
-      flex-shrink: 0;
-    }
-    .hero-simple .hero-text {
-      font-size: 0.78rem;
-      line-height: 1.5;
-      color: #6a6a6a;
-      min-width: 0;
-    }
-    .hero-simple .hero-text .hero-name {
-      font-weight: 700;
-      color: #1a1a1a;
-    }
-    .hero-simple .hero-text a {
-      color: inherit;
-      border-bottom-color: rgba(106,106,106,0.4);
-    }
   }
   .hero h1 {
     margin: 1.25rem 0 1.5rem;
@@ -340,7 +304,7 @@
 <div class="container">
 
 <header class="hero">
-<pre class="hero-ascii">░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
+<pre>░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░
 ░                                                              ░
 ░    ▗▄▄▄▄▖                                                    ░
 ░    █░◉ ▒█     vidmerge · version "good enough 01"            ░
@@ -348,16 +312,6 @@
 ░    ▝▀▀▀▀▘                                                    ░
 ░                                                              ░
 ░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░</pre>
-<div class="hero-simple">
-<pre>▗▄▄▄▄▖
-█░◉ ▒█
-█░ ▒▒█
-▝▀▀▀▘</pre>
-<div class="hero-text">
-<div><span class="hero-name">vidmerge</span> · version "good enough 01"</div>
-<div>Xiaomi camera clip merger · by <a href="https://t.me/slonski">@slonski</a></div>
-</div>
-</div>
 <h1>
 <span class="primary">Склейка минутных видео с камер Xiaomi в один файл на Mac</span>
 <span class="secondary">Инструкция по применению скрипта vidmerge.sh</span>
